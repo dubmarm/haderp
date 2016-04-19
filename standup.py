@@ -1,19 +1,11 @@
-#http://www.frankmcsherry.org/graph/scalability/cost/2015/01/15/COST.html
-#http://www.frankmcsherry.org/graph/scalability/cost/2015/02/04/COST2.html
-#http://www.michael-noll.com/tutorials/running-hadoop-on-ubuntu-linux-multi-node-cluster/
-#http://bradhedlund.com/2011/09/10/understanding-hadoop-clusters-and-the-network/
-#https://en.wikipedia.org/wiki/Fallacies_of_distributed_computing
-#https://news.ycombinator.com/item?id=9581862
-
-#http://www.cs.put.poznan.pl/csobaniec/software/python/py-qrc.html
-
 #install basic SERVER WITH GUI
+#Programmed for Python 3.5
 
 import os
 import subprocess
 import re
 
-#define a method of backing up a file, then append a string to the file and finally reading the file
+#define a method of backing up a file, then append a string to the file and finally read the file
 def file_manip(file, append):
 	class file_org:
 		if os.path.isfile(file+"org"):
@@ -42,11 +34,11 @@ class ip_forward_cmd:
 
 
 #configure zone management
-#assigning interfaces to zones MUST be performed by nmcli
-#https://access.redhat.com/discussions/1455033
+	#assigning interfaces to zones MUST be performed by nmcli
+		#https://access.redhat.com/discussions/1455033
 
 # nmcli pipe grep all devices on computer into list, along with their IP address
-#http://stackoverflow.com/questions/7876272/select-value-from-list-of-tuples-where-condition
+	#http://stackoverflow.com/questions/7876272/select-value-from-list-of-tuples-where-condition
 class nmcli_con_enum:
 	#identify all attached and recognizable NICs
 	nmcli_show = subprocess.Popen(('nmcli', '-f', 'GENERAL.DEVICE','device', 'show'), stdout=subprocess.PIPE)
@@ -94,38 +86,137 @@ gate_dev = ",".join(nmcli_con_enum.ext_dev)
 append = "\nGATEWAYDEV=" + gate_dev
 file_manip(file, append)
 
+
+#Configure Firewall Ports/Services
+	#https://lists.fedorahosted.org/pipermail/firewalld-users/2013-February/000049.html
+	#https://bluehatrecord.wordpress.com/2014/04/17/logging-packet-drops-in-firewalld/
+	#http://www.thegeekstuff.com/2012/08/iptables-log-packets/
+	#http://www.tecmint.com/configure-firewalld-in-centos-7/2/
 class firewall:
 	def fw_port(zone, port, proto):
 		try:
+			print("Adding to firewall:", zone, ":", port, ":", proto)
 			fw = subprocess.Popen(['firewall-cmd', '--permanent', '--zone=' + zone, '--add-port=' + port + '/' + proto], stderr=subprocess.PIPE)
 			fw.communicate()[0]
 			fw.wait
 		except Exception as e:
 			print(port)
 			print(e)
-#firewall.fw_port("internal", "8140", "tcp")
+	#firewall.fw_port("internal", "8140", "tcp")
 		
 	def fw_service(zone, service):
 		try:
+			print("Adding to firewall:", zone, ":", service)
 			fw = subprocess.Popen(['firewall-cmd', '--permanent', '--zone=' + zone, '--add-service=' + service])
 			fw.communicate()[0]
 			fw.wait
 		except Exception as e:
 			print("Error")
 			print(e)
-#firewall.fw_service("internal", "ssh")
+	#firewall.fw_service("internal", "ssh")
+	
+	def fw_passthru():
+		#print(nmcli_con_enum.ext_dev)
+		try:
+			#Configure masquerading on the externally facing device:
+			print("Configuring masquerade on external zone")
+			subprocess.Popen(['firewall-cmd', '--permanent', '--zone=external', '--add-masquerade'])
+			#Configure NAT rule for internal traffic to freely passthrough to external network
+			for x in nmcli_con_enum.ext_dev:
+				print("Configuring NAT rule for internal traffic to passthru to external network:", x)
+				fw = subprocess.Popen(['firewall-cmd', '--permanent', '--direct', '--passthrough', 'ipv4', '-t', 'nat', '-I', 'POSTROUTING', '-o', x, '-j' 'MASQUERADE', '-s', '192.168.0.0/24'], stderr=subprocess.PIPE)
+				fw.communicate()[0]
+				fw.wait
+		except Exception as e:
+			print(x)
+			print(e)
+	
+	def fw_reload():
+		try:
+			print("Reloading Firewall")
+			fw = subprocess.Popen(['firewall-cmd', '--complete-reload'])
+			fw.wait
+			fw = subprocess.Popen(['firewall-cmd', '--list-all-zones'])
+			fw.wait
+		except Exception as e:
+			print(e)
+			
+firewall.fw_passthru()
+	
+#GENERAL SERVICES
+service_list = [
+	("internal", "tftp"),
+	("internal", "ftp"),
+	("internal", "dns"),
+	("internal", "nfs"),
+	("internal", "http"),
+	("external", "http"),
+	("internal", "https"),
+	("external", "https"),
+	("internal", "ssh"),
+	("external", "ssh"),
+	("internal", "proxy-dhcp"),
+	("internal", "ntp"),
+	]
+print(service_list)
+for x in service_list:
+	firewall.fw_service(x[0], x[1])	
 
+#GENERAL PORTS
 port_list = [
-	50070, # allow NameNodeWebUI
-	50470, # allow NameNodeWebUI
-	8020, # allow NameNodeMetaData
-	9000, # allow NameNodeMetaData
-	50075, # allow DataNode
-	50475, # allow DataNode
-	50010, # allow DataNode
-	50020, # allow DataNode
-	50090, # allow SecondaryNameNode
+	#HDFS PORTS
+	("internal", 50070, "tcp"), # allow NameNodeWebUI
+	("internal", 50470, "tcp"), # allow NameNodeWebUI
+	("internal", 8020, "tcp"), # allow NameNodeMetaData
+	("internal", 9000, "tcp"), # allow NameNodeMetaData
+	("internal", 50075, "tcp"), # allow DataNode
+	("internal", 50475, "tcp"), # allow DataNode
+	("internal", 50010, "tcp"), # allow DataNode
+	("internal", 50020, "tcp"), # allow DataNode
+	("internal", 50090, "tcp"), # allow SecondaryNameNode
+	#PUPPET PORTS
+	("internal",8140,"tcp"), # allow puppetmaster
+	("internal",61613,"tcp"), # allow puppet mcollective
+	("internal",8142,"tcp"), # allow puppet orchestration
+	#AMBARI PORTS
+	("internal",8080,"tcp"), # allow Ambari Server
+	("internal","8440-8443","tcp"), # allow Ambari Server
+	#YARN PORTS
+	("internal",8025,"tcp"), # allow YARNResourceManager
+	("internal",8141,"tcp"), # allow YARNRMAdmin
+	("internal",8050,"tcp"), # allow YARNContainerManager
+	("internal",45454,"tcp"), # allow YARNApplicationsManager
+	("internal",8042,"tcp"), # allow YARNNodeManagerWebApp
+	("internal",8088,"tcp"), # allow YARNResourceManagerWebApp	
+	#MAPREDUCE PORTS
+	("internal",50030,"tcp"), # allow JobTrackerWebUI
+	("internal",8021,"tcp"), # allow JobTracker
+	("internal",50060,"tcp"), # allow TaskTrackerWebUI
+	("internal",51111,"tcp"), # allow HistoryServerWebUI
+	("internal",19888,"tcp"), # allow HistoryServerWebUI	
+	#HIVE PORTS
+	("internal",10000,"tcp"), # allow HiveServer2
+	("internal",9083,"tcp"), # allow HiveMetaStore
+	#HBASE PORTS
+	("internal",60000,"tcp"), # allow HMaster
+	("internal",60010,"tcp"), # allow HMasterWebUI
+	("internal",60020,"tcp"), # allow RegionServer
+	("internal",60030,"tcp"), # allow RegionServer
+	("internal",2888,"tcp"), # allow RegionServer
+	("internal",3888,"tcp"), # allow RegionServer
+	("internal",2181,"tcp"), # allow RegionServer
+	#WEBHCAT PORTS
+	("internal",50111,"tcp"), # allow WebHCatServer
+	#GANGLIA PORTS
+	("internal","8660-8663","tcp"), # allow GangliaServer
+	("internal",8651,"tcp"), # allow GangliaServer
+	#MYSQL PORTS
+	("internal",3306,"tcp"), # allow MySQL
+	#TIGERVNC
+	("internal","5904-5905","tcp"), # allow TigerVNC
 	];
 print(port_list)
 for x in port_list:
-	firewall.fw_port("internal", str(x), "tcp")		
+	firewall.fw_port(x[0], str(x[1]), x[2])
+
+firewall.fw_reload()
