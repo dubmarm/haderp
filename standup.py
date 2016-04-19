@@ -220,3 +220,4 @@ for x in port_list:
 	firewall.fw_port(x[0], str(x[1]), x[2])
 
 firewall.fw_reload()
+exit()
