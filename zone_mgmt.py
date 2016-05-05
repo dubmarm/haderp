@@ -71,4 +71,4 @@ class nmcli_con_enum(object):
 
 #TEST! -place in main
 #instantiate nmcli_con_enum() and run main()
-nmcli_con_enum().main()
+#nmcli_con_enum().main()
