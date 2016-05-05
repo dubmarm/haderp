@@ -1,27 +1,32 @@
 #! python
+import os
+import subprocess
+import re
+import fileinput
+
 class nmcli_con_enum(object):
 	def __init__(self):
 		self.device_list = []
 
-	def dev_enum:
+	def dev_enum(self):
 		#identify all attached and recognizable NICs
 		nmcli_show = subprocess.Popen(('nmcli', '-f', 'GENERAL.DEVICE','device', 'show'), stdout=subprocess.PIPE)
 		device_string = re.sub('^(.*?\s+)', "", (nmcli_show.stdout.read()).decode("ascii"), flags=re.MULTILINE)
 		#build a list of sublists, listing (device_id,ip)
 		for i in device_string.splitlines():
-		nmcli_ip = subprocess.Popen(('nmcli', '-f', 'IP4.ADDRESS','device', 'show', i), stdout=subprocess.PIPE)
-		ip_string = re.sub('^(.*?\s+)', "", (nmcli_ip.stdout.read()).decode("ascii"), flags=re.MULTILINE)
-		for j in ip_string.splitlines():
-			#print(i,j)
-			dev_i = (i,j)
-			#print(dev_i)
-			self.device_list.append(dev_i)
-	print(self.device_list)
+			nmcli_ip = subprocess.Popen(('nmcli', '-f', 'IP4.ADDRESS','device', 'show', i), stdout=subprocess.PIPE)
+			ip_string = re.sub('^(.*?\s+)', "", (nmcli_ip.stdout.read()).decode("ascii"), flags=re.MULTILINE)
+			for j in ip_string.splitlines():
+				#print(i,j)
+				dev_i = (i,j)
+				#print(dev_i)
+				self.device_list.append(dev_i)
+		print(self.device_list)
 
 	#if 192.168.0.1 is assigned to a NIC, set it to internal
 	#for all others, enumerate an iteration table, for each iterable attempt to ping google
 	#if ping successful, assign nic to external, assign all others to internal
-	def dev_zone:
+	def dev_zone(self):
 		for x in [dev for (dev,ip) in self.device_list if ip=="192.168.0.1/24"]:
 			print('Found internal ip on:',x)
 			subprocess.Popen(['nmcli', 'con', 'mod', x, 'connection.zone', 'internal'])
@@ -42,7 +47,7 @@ class nmcli_con_enum(object):
 					continue
 		print(ext_dev)
 
-	
-	
-nmcli_con_enum.dev_enum()
-nmcli_con_enum.dev_zone()
+#TEST! -place in main
+devices = nmcli_con_enum()
+devices.dev_enum()
+devices.dev_zone()
