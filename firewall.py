@@ -3,58 +3,55 @@ import os
 import subprocess
 
 #Configure Firewall Ports/Services Class
-class firewall(object):
-	def __init__(self):
-		self.firewall = []
+class firewall_port(object):
+	def __init__(self, zone, port, proto):
+		self.zone = zone
+		self.port = port
+		self.proto = proto
 	
-	def fw_port(self, zone, port, proto):
+	def fw_port(self):
 		try:
-			print("Adding to firewall:", zone, ":", port, ":", proto)
-			fw = subprocess.Popen(['firewall-cmd', '--permanent', '--zone=' + zone, \
-			'--add-port=' + port + '/' + proto], stderr=subprocess.PIPE)
+			print("Adding to firewall:", self.zone, ":", self.port, ":", self.proto)
+			fw = subprocess.Popen(['firewall-cmd', '--permanent', '--zone=' + self.zone, \
+			'--add-port=' + self.port + '/' + self.proto], stderr=subprocess.PIPE)
 			fw.communicate()[0]
-			fw.wait
+			fw.wait()
 		except Exception as e:
-			print(port)
+			print(self.port)
 			print(e)
 	#firewall.fw_port("internal", "8140", "tcp")
 
-	def fw_service(self, zone, service):
+class firewall_service(object):
+	def __init__(self, zone, service):
+		self.zone = zone
+		self.service = service
+	
+	def fw_service(self):
 		try:
-			print("Adding to firewall:", zone, ":", service)
-			fw = subprocess.Popen(['firewall-cmd', '--permanent', '--zone=' + zone, \
-			'--add-service=' + service])
+			print("Adding to firewall:", self.zone, ":", self.service)
+			fw = subprocess.Popen(['firewall-cmd', '--permanent', '--zone=' + self.zone, \
+			'--add-service=' + self.service])
 			fw.communicate()[0]
-			fw.wait
+			fw.wait()
 		except Exception as e:
-			print("Error")
+			print(self.service)
 			print(e)
 	#firewall.fw_service("internal", "ssh")
 	
-	def fw_passthru(self):
-		#print(nmcli_con_enum.ext_dev)
-		try:
-			#Configure masquerading on the externally facing device:
-			print("Configuring masquerade on external zone")
-			subprocess.Popen(['firewall-cmd', '--permanent', '--zone=external', '--add-masquerade'])
-			#Configure NAT rule for internal traffic to freely passthrough to external network
-			for x in nmcli_con_enum.ext_dev:
-				print("Configuring NAT rule for internal traffic to passthru to external network:", x)
-				fw = subprocess.Popen(['firewall-cmd', '--permanent', '--direct', '--passthrough', \
-				'ipv4', '-t', 'nat', '-I', 'POSTROUTING', '-o', x, '-j' 'MASQUERADE', '-s', '192.168.0.0/24'],\
-				stderr=subprocess.PIPE)
-				fw.communicate()[0]
-				fw.wait
-		except Exception as e:
-			print(x)
-			print(e)
-	
-	def fw_reload(self):
-		try:
-			print("Reloading Firewall")
-			fw = subprocess.Popen(['firewall-cmd', '--complete-reload'])
-			fw.wait
-			fw = subprocess.Popen(['firewall-cmd', '--list-all-zones'])
-			fw.wait
-		except Exception as e:
-			print(e)
+def fw_reload():
+	try:
+		print("Reloading Firewall")
+		fw = subprocess.Popen(['firewall-cmd', '--complete-reload'])
+		fw.wait
+		fw = subprocess.Popen(['firewall-cmd', '--list-all-zones'])
+		fw.wait()
+	except Exception as e:
+		print(e)
+
+
+#TEST! -place in main	
+#port8140 = firewall_port("internal", "8140", "tcp")
+#port8140.fw_port()
+#fssh = firewall_service("internal", "ssh")
+#fssh.fw_service()
+#fw_reload()
