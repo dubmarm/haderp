@@ -48,6 +48,6 @@ class nmcli_con_enum(object):
 		print(ext_dev)
 
 #TEST! -place in main
-devices = nmcli_con_enum()
-devices.dev_enum()
-devices.dev_zone()
+#devices = nmcli_con_enum()
+#devices.dev_enum()
+#devices.dev_zone()
