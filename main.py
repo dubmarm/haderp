@@ -25,8 +25,7 @@ devices.dev_zone()
 gateway = nmcli_con_enum()
 gateway.dev_enum()
 gateway.dev_zone.ext_dev()
-gate_dev = ",".join(nmcli_con_enum.ext_dev)
-append = "\nGATEWAYDEV=" + gate_dev
-gateway = fmanip("/etc/sysconfig/network",append)
-gateway.fbak()
-ip_forward.fappend()
+
+gateway_device = ",".join(nmcli_con_enum.ext_dev)
+gateway_append = "\nGATEWAYDEV=" + gateway_device
+gateway = fmanip("/etc/sysconfig/network", gateway_append)
