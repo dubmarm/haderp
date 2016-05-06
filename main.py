@@ -8,9 +8,11 @@ import file_manip
 import firewall
 
 #Call fmanip to append ipforwarding
-ip_forward = file_manip.fmanip("/etc/sysctl.conf","\nnet.ipv4.ip_forward=1")
-ip_forward.fbak()
-ip_forward.fappend()
+ipforward_file = "/etc/sysctl.conf"
+ipforward_append = "\nnet.ipv4.ip_forward=1"
+file_manip.filebak(ipforward_file, ".bak").fbak()
+file_manip.fileappend(ipforward_file, ipforward_append).fappend()
+
 
 #Call method for enabling ipforwarding
 class ip_forward_cmd:
@@ -25,10 +27,11 @@ gateway = zone_mgmt.nmcli_con_enum()
 gateway.dev_enum()
 gateway.dev_zone()
 gateway_device = ",".join(gateway.ext_dev)
+
+gateway_file = "/etc/sysconfig/network"
 gateway_append = "\nGATEWAYDEV=" + gateway_device
-gateway = file_manip.fmanip("/etc/sysconfig/network", gateway_append)
-gateway.fbak()
-gateway.fappend()
+file_manip.filebak(gateway_file, ".bak").fbak()
+file_manip.fileappend(gateway_file, gateway_append).fappend()
 
 #configure firewall
 #GENERAL SERVICES
@@ -138,7 +141,7 @@ port_list = [
 	("internal", 16020, "tcp"), # allow HBase Server : hbase.regionserver.port
 	("internal", 16030, "tcp"), # allow HBase Server : hbase.regionserver.info.port
 	("internal", 16100, "tcp"), # allow HBase Server : hbase.status.multicast.address.port
-	("internal", #CONFLICT WITH AMBARI PORT!!!!!!
+	#CONFLICT WITH AMBARI PORT!!!!!!
 	("internal", 8080, "tcp"), # allow HBase Server : hbase.rest.port
 	#TITAN PORT
 	("internal", 8182, "tcp"), # allow Titan
@@ -156,3 +159,37 @@ for x in port_list:
 	firewall.firewall_port(x[0], str(x[1]), x[2]).fw_port()
 
 firewall.fw_reload()
+
+
+
+#CONFIGURE VNCSERVER
+# yum install -y tigervnc-server
+# sudo cp /lib/systemd/system/vncserver@.service /etc/systemd/system/vncserver@:4.service
+
+file = "/etc/systemd/system/vncserver@:4.service"
+filebak(file, ".bak").fbak()
+find = "<USER>"
+replace = "ur.local"
+filereplace(file, find, replace).freplace()
+
+file = "/etc/systemd/system/vncserver@:4.service"
+find = "\"/usr/bin/vncserver %i\""
+replace = "\"/usr/bin/vncserver %i -geometry 1280x1024\""
+filereplace(file, find, replace).freplace()
+
+# systemctl daemon-reload
+# systemctl enable vncserver@:4.service
+# ssh ur.local@192.168.0.1
+# vncserver
+	# password
+# exit
+# rm -i /tmp/.X11-unix/X4
+# sudo systemctl daemon-reload
+# sudo systemctl restart vncserver@:4.service
+#	download VNCViewer for Windows
+#	192.168.0.1:5904
+
+
+
+
+
