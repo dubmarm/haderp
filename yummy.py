@@ -18,15 +18,17 @@
 import yum
 import os
 import sys
-import output
+
 from urlgrabber.progress import TextMeter
 
 yb=yum.YumBase()
+#yb.repos.setCacheDir(yum.misc.getCacheDir())
 yb.conf.cache = os.geteuid() != 0
 
 # Use the "internal" output mode of yum's cli
 sys.path.insert(0, '/usr/share/yum-cli')
 
+import output
 yb.repos.setProgressBar(TextMeter(fo=sys.stdout))
 yb.repos.callback = output.CacheProgressCallback()
 yumout = output.YumOutput()
@@ -54,20 +56,25 @@ class yummyintummy(object):
 				yb.buildTransaction()
 		yb.processTransaction()
 
+class yummyouttummy(object):
+	def __init__(self, arg):
+		self.arg = arg
+		
 	def yumremove(self):
 		for package in self.arg :
 			if package in installed:
-				print('{0} is already installed, skipping...'.format(package))
-			else:
-				print('Installing {0}'.format(package))
+				print('Removing {0}'.format(package))
 				kwarg = {
 					'name':package
 				}
-				yb.delete(**kwarg)
+				yb.remove(**kwarg)
 				yb.resolveDeps()
 				yb.buildTransaction()
-		yb.processTransaction()
+			else:
+				print('{0} is not installed, skipping...'.format(package))
+		yb.processTransaction()				
 		
 # TEST
 #arg=['pigz', 'tree']
 #yummyintummy(arg).yuminstall()
+#yummyouttummy(arg).yumremove()
