@@ -6,6 +6,7 @@ import fileinput
 import zone_mgmt
 import file_manip
 import firewall
+import yummy
 
 #Call fmanip to append ipforwarding
 ipforward_file = "/etc/sysctl.conf"
@@ -160,10 +161,10 @@ for x in port_list:
 
 firewall.fw_reload()
 
-
-
 #CONFIGURE VNCSERVER
-# yum install -y tigervnc-server
+arg=['tigervnc-server']
+yummyintummy(arg).yuminstall()
+
 # sudo cp /lib/systemd/system/vncserver@.service /etc/systemd/system/vncserver@:4.service
 
 file = "/etc/systemd/system/vncserver@:4.service"
