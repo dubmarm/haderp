@@ -161,35 +161,30 @@ for x in port_list:
 
 firewall.fw_reload()
 
-#CONFIGURE VNCSERVER
+#INSTALL/CONFIGURE VNCSERVER
 arg=['tigervnc-server']
-yummyintummy(arg).yuminstall()
+yummy.yummyintummy(arg).yuminstall()
 
-# sudo cp /lib/systemd/system/vncserver@.service /etc/systemd/system/vncserver@:4.service
+src = '/lib/systemd/system/vncserver@.service'
+dst = '/etc/systemd/system/vncserver@:4.service'
+file_manip.filecp(src, dst).fcp()
 
 file = "/etc/systemd/system/vncserver@:4.service"
-filebak(file, ".bak").fbak()
+file_manip.filebak(file, ".bak").fbak()
 find = "<USER>"
 replace = "ur.local"
-filereplace(file, find, replace).freplace()
+file_manip.filereplace(file, find, replace).freplace()
 
 file = "/etc/systemd/system/vncserver@:4.service"
 find = "\"/usr/bin/vncserver %i\""
 replace = "\"/usr/bin/vncserver %i -geometry 1280x1024\""
-filereplace(file, find, replace).freplace()
+file_manip.filereplace(file, find, replace).freplace()
 
-# systemctl daemon-reload
-# systemctl enable vncserver@:4.service
-# ssh ur.local@192.168.0.1
-# vncserver
-	# password
-# exit
-# rm -i /tmp/.X11-unix/X4
-# sudo systemctl daemon-reload
-# sudo systemctl restart vncserver@:4.service
-#	download VNCViewer for Windows
-#	192.168.0.1:5904
-
+try:
+	subprocess.Popen(['systemctl', 'daemon-reload'])
+	subprocess.Popen(['systemctl', 'enable', 'vncserver@:4.service'])
+except Exception:
+	print('Error:',x)
 
 
 
